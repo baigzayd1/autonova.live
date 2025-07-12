@@ -17,7 +17,7 @@ export default function Home() {
           <Hero />
           <Services />
           <Process />
-          <UseCases />
+          
           <USP />
           <section id="contact" className="py-20 bg-transparent"> 
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
