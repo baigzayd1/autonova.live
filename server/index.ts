@@ -1,4 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
+import path from "path";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
@@ -50,16 +51,21 @@ app.use((req, res, next) => {
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
+  if (process.env.NODE_ENV === "production") {
+    app.use(express.static("build"));
+    app.get("*", (req, res) => {
+      res.sendFile(path.join(import.meta.dirname, "../build/index.html"));
+    });
+  } else if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
+  // ALWAYS serve the app on port 3000 or PORT env variable
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = 3000;
+  const port = parseInt(process.env.PORT || "3000", 10);
   server.listen(port, "localhost", () => {
     log(`serving on port ${port}`);
   });

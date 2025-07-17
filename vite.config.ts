@@ -27,8 +27,12 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "build"),
     emptyOutDir: true,
+    minify: true,
+    sourcemap: false
   },
   server: {
+    port: 3000,
+    strictPort: true,
     fs: {
       strict: true,
       deny: ["**/.*"],

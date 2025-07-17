@@ -1,6 +1,9 @@
 node_modules
 dist
+build
 .DS_Store
 server/public
+server/index.js
 vite.config.ts.*
 *.tar.gz
+.env
