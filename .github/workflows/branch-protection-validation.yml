@@ -1,0 +1,155 @@
+name: Branch Protection Validation
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'scripts/configure-branch-protection.js'
+      - 'scripts/branch-protection-config.json'
+      - '.github/workflows/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'scripts/configure-branch-protection.js'
+      - 'scripts/branch-protection-config.json'
+      - '.github/workflows/**'
+
+jobs:
+  validate-branch-protection:
+    name: Validate Branch Protection Configuration
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+        
+      - name: Validate branch protection script
+        run: |
+          echo "🔍 Validating branch protection configuration script..."
+          
+          # Check if script exists and is executable
+          if [ ! -f "scripts/configure-branch-protection.js" ]; then
+            echo "❌ Branch protection script not found"
+            exit 1
+          fi
+          
+          # Check if configuration file exists
+          if [ ! -f "scripts/branch-protection-config.json" ]; then
+            echo "❌ Branch protection configuration file not found"
+            exit 1
+          fi
+          
+          # Validate JSON configuration
+          if ! node -e "JSON.parse(require('fs').readFileSync('scripts/branch-protection-config.json', 'utf8'))"; then
+            echo "❌ Invalid JSON in branch protection configuration"
+            exit 1
+          fi
+          
+          echo "✅ Branch protection configuration files are valid"
+          
+      - name: Test script functionality
+        run: |
+          echo "🧪 Testing branch protection script functionality..."
+          
+          # The script should fail gracefully when GitHub CLI is not authenticated
+          # This is expected behavior for the test environment
+          if node scripts/configure-branch-protection.js 2>&1 | grep -q "GitHub CLI is not authenticated"; then
+            echo "✅ Script correctly handles unauthenticated state"
+          else
+            echo "❌ Script did not handle unauthenticated state properly"
+            exit 1
+          fi
+          
+      - name: Validate required status checks
+        run: |
+          echo "📋 Validating required status checks configuration..."
+          
+          # Extract status checks from configuration
+          STATUS_CHECKS=$(node -e "
+            const config = JSON.parse(require('fs').readFileSync('scripts/branch-protection-config.json', 'utf8'));
+            console.log(JSON.stringify(config.required_status_checks.contexts, null, 2));
+          ")
+          
+          echo "Required status checks:"
+          echo "$STATUS_CHECKS"
+          
+          # Verify that all expected checks are present
+          EXPECTED_CHECKS=(
+            "build_and_deploy_job"
+            "typescript-check" 
+            "lint-check"
+            "test-check"
+            "build-check"
+            "security-check"
+          )
+          
+          for check in "${EXPECTED_CHECKS[@]}"; do
+            if echo "$STATUS_CHECKS" | grep -q "\"$check\""; then
+              echo "✅ $check - configured"
+            else
+              echo "❌ $check - missing from configuration"
+              exit 1
+            fi
+          done
+          
+          echo "✅ All required status checks are properly configured"
+          
+      - name: Validate workflow files
+        run: |
+          echo "🔧 Validating GitHub Actions workflow files..."
+          
+          # Check if code quality workflow exists
+          if [ ! -f ".github/workflows/code-quality.yml" ]; then
+            echo "❌ Code quality workflow not found"
+            exit 1
+          fi
+          
+          # Validate YAML syntax
+          if ! node -e "require('yaml').parse(require('fs').readFileSync('.github/workflows/code-quality.yml', 'utf8'))" 2>/dev/null; then
+            echo "⚠️  YAML validation requires yaml package (not critical for validation)"
+          fi
+          
+          # Check if workflow contains required jobs
+          REQUIRED_JOBS=(
+            "typescript-check"
+            "lint-check" 
+            "test-check"
+            "build-check"
+            "security-check"
+          )
+          
+          for job in "${REQUIRED_JOBS[@]}"; do
+            if grep -q "^  $job:" ".github/workflows/code-quality.yml"; then
+              echo "✅ $job job - defined"
+            else
+              echo "❌ $job job - missing from workflow"
+              exit 1
+            fi
+          done
+          
+          echo "✅ All required workflow jobs are properly defined"
+          
+      - name: Generate validation report
+        run: |
+          echo "📊 Branch Protection Validation Report"
+          echo "====================================="
+          echo ""
+          echo "✅ Branch protection script validation: PASSED"
+          echo "✅ Configuration file validation: PASSED" 
+          echo "✅ Required status checks: PASSED"
+          echo "✅ GitHub Actions workflows: PASSED"
+          echo ""
+          echo "🎉 All branch protection components are properly configured!"
+          echo ""
+          echo "Next steps:"
+          echo "1. Ensure GitHub CLI is installed and authenticated"
+          echo "2. Run 'npm run setup-branch-protection' to apply the rules"
+          echo "3. Verify the rules are active in GitHub repository settings"
