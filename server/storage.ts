@@ -1,8 +1,20 @@
 import { contacts, type Contact, type InsertContact } from "@shared/schema";
+import { db } from "./db";
 
 export interface IStorage {
   createContact(contact: InsertContact): Promise<Contact>;
   getContacts(): Promise<Contact[]>;
+}
+
+export class DbStorage implements IStorage {
+  async createContact(insertContact: InsertContact): Promise<Contact> {
+    const [contact] = await db.insert(contacts).values(insertContact).returning();
+    return contact;
+  }
+
+  async getContacts(): Promise<Contact[]> {
+    return await db.select().from(contacts);
+  }
 }
 
 export class MemStorage implements IStorage {
@@ -31,4 +43,5 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Use database storage if DATABASE_URL is provided, otherwise use memory storage
+export const storage = process.env.DATABASE_URL ? new DbStorage() : new MemStorage();
