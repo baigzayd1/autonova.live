@@ -9,15 +9,14 @@ import { BackgroundBeamsWithCollision } from "@/components/ui/background-beams";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-white dark:bg-black relative">
-      
+    <div className="relative min-h-screen bg-white dark:bg-black">
+      <BackgroundBeamsWithCollision className="z-0">{null}</BackgroundBeamsWithCollision>
       <div className="relative z-10">
         <Header />
         <main>
           <Hero />
           <Services />
           <Process />
-          
           <USP />
           <section id="contact" className="py-20 bg-transparent"> 
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">

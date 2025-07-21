@@ -1,5 +1,6 @@
 
 
+/// <reference types="node" />
 import "dotenv/config";
 
 
